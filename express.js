@@ -20,7 +20,7 @@ app.use(express.json())
 
 app.use('/static',express.static('static'))
 
-app.get('/',async (req,res,next)=>{
+app.get('/api/',async (req,res,next)=>{
     let cards;
     try {
         cards = await Card.find();
@@ -42,7 +42,7 @@ app.get('/',async (req,res,next)=>{
     })
 })
 
-app.post('/addcard',async (req,res,next)=>{
+app.post('/api/addcard',async (req,res,next)=>{
     const {
         name,
         dob
@@ -54,7 +54,7 @@ app.post('/addcard',async (req,res,next)=>{
     });
 
     try{
-        await card.save()
+        await card.save();
     }catch(err){
         return next({
             error:"Something went wrong.Please try again later.",
@@ -67,10 +67,36 @@ app.post('/addcard',async (req,res,next)=>{
     })
 })
 
-app.get('/topcards',async (req,res,next)=>{
+app.get('/api/topcards',async (req,res,next)=>{
+    let cards;
     let top7Cards;
+    const currentDate = new Date();
+    const currentDay = currentDate.getDate();
+    const currentMonth = currentDate.getMonth()+1;
     try{
-        top7Cards = await Card.find().sort({dob:1,name:1}).limit(7);
+        cards = await Card.find();
+        top7Cards = cards.filter(card => {
+            const day = parseInt(card.dob.substring(8,10));
+            const month = parseInt(card.dob.substring(5, 7));
+            if (month >= currentMonth){
+                if(month == currentMonth ){
+                    if (day > currentDay) 
+                        return true;
+                    else
+                        return false;
+                }else{
+                    return true;
+                }
+            }
+            return false;
+        }).sort((x, y) => {
+          const x1 = x.dob.substring(5, 10);
+          const y1 = y.dob.substring(5, 10);
+          if(x1 > y1)
+            return 1;
+          return -1;
+        })
+        .slice(0,7);
     }catch(err){
         return next({
             error:"Something went wrong.Please try again later.",
@@ -89,7 +115,7 @@ app.get('/topcards',async (req,res,next)=>{
     })
 })
 
-app.get('/card/:id',async (req,res,next)=>{
+app.get('/api/card/:id',async (req,res,next)=>{
     const cardId = req.params.id;
     let card;
     try{
@@ -100,7 +126,8 @@ app.get('/card/:id',async (req,res,next)=>{
             status:500
         })
     }
-    if(!card){
+    
+    if(card == null){
         return next({
             error:"There is no card for the specified id.",
             status:404
@@ -113,7 +140,9 @@ app.get('/card/:id',async (req,res,next)=>{
 })
 
 app.use((error,req,res,next)=>{
-
+    res.status(error['status']).json({
+        message : error['error'],
+    })
 })
 
 
@@ -130,7 +159,6 @@ mongoose
     console.log('Server connected to mongodb');
   })
   .catch((err) => {
-    console.log(err);
     console.log('server did not connnected to mongodb');
   });
 

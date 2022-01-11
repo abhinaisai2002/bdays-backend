@@ -7,4 +7,5 @@ const cardSchema = mongoose.Schema({
   points: { type: Number, default: Math.floor(Math.random() * 100) },
 });
 
+
 module.exports = mongoose.model('Card',cardSchema);
